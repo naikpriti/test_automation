@@ -32,8 +32,6 @@ def fetch_releases():
     response = requests.get(releases_url, headers=headers)
     if response.status_code == 200:
         return response.json()
-    elif response.status_code == 404:
-        print("Error: Repository not found. Check the repository name and owner.")
     else:
         print(f"Error fetching releases: {response.status_code}")
     return []
@@ -93,8 +91,10 @@ def update_variable_tf(branch_name):
     subprocess.run(["git", "clone", f"https://{token}@github.com/{owner}/{repo}.git"])
     os.chdir(repo)
     
-    # Fetch and create the branch if not already present
+    # Fetch the latest changes from the remote branch
     subprocess.run(["git", "fetch", "origin"])
+    
+    # Checkout the new branch
     subprocess.run(["git", "checkout", "-b", branch_name])
 
     # Configure Git user
@@ -105,12 +105,20 @@ def update_variable_tf(branch_name):
     with open("variable.tf", "a") as f:
         f.write("\n# Updated variable.tf for new release\n")
 
-    # Commit and push the changes
+    # Commit the changes
     subprocess.run(["git", "add", "variable.tf"])
     subprocess.run(["git", "commit", "-m", "Update variable.tf for new release"])
-    
-    # Push the branch with the token for authentication
-    subprocess.run(["git", "push", "-u", "origin", branch_name])
+
+    # Pull the latest changes from the remote branch to avoid non-fast-forward error
+    subprocess.run(["git", "pull", "--rebase", "origin", branch_name])
+
+    # Push the changes, forcing update if necessary
+    push_result = subprocess.run(["git", "push", "-u", "origin", branch_name])
+
+    # Handle non-fast-forward error and force push if needed
+    if push_result.returncode != 0:
+        print(f"Non-fast-forward push detected, force pushing branch '{branch_name}'")
+        subprocess.run(["git", "push", "-u", "--force", "origin", branch_name])
 
     # Go back to the original directory
     os.chdir("..")
