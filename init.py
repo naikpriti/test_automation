@@ -3,6 +3,10 @@ import re
 from collections import defaultdict
 import os
 import subprocess
+import time
+import json
+from packaging import version
+from bs4 import BeautifulSoup
 
 # GitHub repository information
 owner = "naikpriti"  # Replace with your GitHub username
@@ -28,6 +32,9 @@ headers = {
     "Authorization": f"token {token}",
     "Accept": "application/vnd.github.v3+json"
 }
+
+# URL of the Microsoft download page
+download_page_url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
 
 def fetch_releases():
     response = requests.get(releases_url, headers=headers)
@@ -85,7 +92,7 @@ def create_branch(branch_name, tag_name):
     else:
         print(f"Error creating branch '{branch_name}': {response.status_code} - {response.json()}")
 
-def update_files(branch_name, new_tag_name):
+def update_files(branch_name, new_tag_name, ip_addresses):
     # Clone the repository and checkout the new branch
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
@@ -104,17 +111,12 @@ def update_files(branch_name, new_tag_name):
 
     # Update variable.tf
     variable_tf_path = os.path.join("key-vault", "variable.tf")
-    if os.path.exists(variable_tf_path):
-        with open(variable_tf_path, "a") as f:
-            f.write("\n# Updated variable.tf for new release\n")
-    else:
-        with open(variable_tf_path, "w") as f:
-            f.write("# Updated variable.tf for new release\n")
+    update_variables_tf(variable_tf_path, ip_addresses)
 
     # Update version.txt
     version_txt_path = "version.txt"
     with open(version_txt_path, "w") as f:
-        f.write(new_tag_name)
+        f.write(f"Version: {new_tag_name}")
 
     # Add, commit, and push the changes
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
@@ -155,6 +157,109 @@ def create_release(branch_name, new_tag_name):
     else:
         print(f"Error creating release '{new_tag_name}': {response.status_code} - {response.json()}")
 
+def update_variables_tf(file_path, ip_addresses):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    updated = False
+    with open(file_path, 'w') as file:
+        inside_default_block = False
+        for line in lines:
+            if 'variable "azure_allowed_ip_list"' in line:
+                inside_default_block = True
+            if inside_default_block and line.strip().startswith('default ='):
+                file.write(f'default = [{", ".join(ip_addresses)}]\n')
+                inside_default_block = False
+                updated = True
+            elif inside_default_block and line.strip().startswith('['):
+                # Skip the old IP list
+                continue
+            else:
+                file.write(line)
+    return updated
+
+def fetch_and_process_json():
+    # Step 1: Fetch the HTML content of the confirmation page
+    response = requests.get(download_page_url, headers={'User-Agent': 'Github Actions'})
+    if response.status_code != 200:
+        print(f"Failed to fetch the confirmation page. Status code: {response.status_code}")
+        exit(2)
+
+    # Step 2: Parse the HTML content using BeautifulSoup
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    # Step 3: Find the download link for the JSON file
+    download_link = soup.find('a', href=re.compile(r'ServiceTags_Public_\d{8}\.json'))
+    if not download_link:
+        print("Download link not found")
+        exit(2)
+
+    # Extract the JSON file name from the href attribute
+    json_file_name = download_link['href'].split('/')[-1]
+
+    # Extract the version from the JSON file name (format: yyyymmdd)
+    version_date = re.search(r'\d{8}', json_file_name).group(0)
+    version_formatted = f"{version_date[:4]}.{version_date[4:6]}.{version_date[6:]}"
+
+    # Step 4: Read the current version from version.txt
+    version_file = 'version.txt'
+    with open(version_file, 'r') as file:
+        current_version_line = next((line for line in file if line.startswith('Version:')), None)
+        if current_version_line:
+            current_version = current_version_line.split('Version:')[1].strip()
+        else:
+            print(f"Version line not found in {version_file}")
+            exit(2)
+
+    # Step 5: Compare the versions
+    if version.parse(version_formatted) <= version.parse(current_version):
+        print("IPs are already updated with the latest version.")
+        exit(1)
+
+    # Step 6: Construct the download URL
+    download_url = download_link['href']
+
+    # Step 7: Download the JSON file with retries
+    retry_count = 3
+    for attempt in range(retry_count):
+        try:
+            json_response = requests.get(download_url, timeout=60)
+            if json_response.status_code == 200:
+                break
+        except requests.RequestException as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+        if attempt < retry_count - 1:
+            print("Retrying...")
+            time.sleep(15)
+    else:
+        print(f"Failed to download the JSON file after {retry_count} attempts.")
+        exit(2)
+
+    # Step 8: Save the JSON file locally with the correct name format
+    with open(json_file_name, 'wb') as json_file:
+        json_file.write(json_response.content)
+
+    print(f"Downloaded {json_file_name}")
+
+    # Step 9: Read the JSON file
+    with open(json_file_name, 'r') as json_file:
+        data = json.load(json_file)
+
+    # Step 10: Extract IPv4 addresses for the eastus region
+    ipv4_addresses = []
+    for value in data['values']:
+        if value['properties']['region'] == 'eastus':
+            for prefix in value['properties']['addressPrefixes']:
+                if ':' not in prefix:  # Check if the address is IPv4
+                    ipv4_addresses.append(f'"{prefix}"')  # Ensure each IP is double-quoted
+
+    # Step 11: Print the extracted IPv4 addresses
+    print("IPv4 addresses for eastus region:")
+    for address in ipv4_addresses:
+        print(address)
+
+    return version_formatted, ipv4_addresses
+
 def main():
     releases = fetch_releases()
     if not releases:
@@ -175,19 +280,21 @@ def main():
     # Debug print to check the structure of latest_versions
     print("Latest Versions:", latest_versions)
 
+    # Fetch and process the JSON file
+    new_tag_name, ip_addresses = fetch_and_process_json()
+
     # Create a branch for each latest version, incrementing the patch version
     for (major_minor, (patch, tag_name)) in latest_versions.items():
         print("Processing:", major_minor, patch, tag_name)  # Debug print
         major, minor = major_minor
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
-        new_tag_name = f"v{major}.{minor}.{new_patch}"
         
         # Create the branch from the tag
         create_branch(new_branch_name, tag_name)
         
         # Update variable.tf and version.txt in the new branch
-        update_files(new_branch_name, new_tag_name)
+        update_files(new_branch_name, new_tag_name, ip_addresses)
         
         # Create a new release from the new branch
         create_release(new_branch_name, new_tag_name)
