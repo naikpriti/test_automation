@@ -19,10 +19,12 @@ version_regex = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 
 # Get your GitHub token from environment variables or replace with your token directly
 token = os.getenv("GITHUB_TOKEN")
+if not token:
+    raise ValueError("GitHub token not found. Please set the GITHUB_TOKEN environment variable.")
 
-# Add the authentication header with the token if it's available
+# Add the authentication header with the token
 headers = {
-    "Authorization": f"token {token}" if token else None,
+    "Authorization": f"token {token}",
     "Accept": "application/vnd.github.v3+json"
 }
 
