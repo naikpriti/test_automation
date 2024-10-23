@@ -93,8 +93,12 @@ def main():
         latest_minor_versions = get_latest_minor_versions(minor_versions)
         latest_versions.update(latest_minor_versions)
 
+    # Debug print to check the structure of latest_versions
+    print("Latest Versions:", latest_versions)
+
     # Create a branch for each latest version, incrementing the patch version
     for (major_minor, (patch, tag_name)) in latest_versions.items():
+        print("Processing:", major_minor, patch, tag_name)  # Debug print
         major, minor = major_minor
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
