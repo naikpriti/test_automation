@@ -120,7 +120,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
 
     # Add, commit, and push the changes
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
-    subprocess.run(["git", "commit", "-m", f"Update variable.tf and version.txt for release {new_tag_name}"])
+    subprocess.run(["git", "commit", "-m", f"Update variables.tf and version.txt for release {new_tag_name}"])
 
     # Pull the latest changes from the remote branch to avoid non-fast-forward error
     try:
@@ -137,6 +137,37 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     if push_result.returncode != 0:
         print(f"Non-fast-forward push detected, force pushing branch '{branch_name}'")
         subprocess.run(["git", "push", "-u", "--force", "origin", branch_name])
+
+    # Go back to the original directory
+    os.chdir("..")
+
+def update_main_branch(ip_addresses, new_tag_name):
+    # Clone the repository and checkout the main branch
+    if os.path.exists(repo):
+        subprocess.run(["rm", "-rf", repo])
+    subprocess.run(["git", "clone", f"https://{token}@github.com/{owner}/{repo}.git"])
+    os.chdir(repo)
+    
+    # Checkout the main branch
+    subprocess.run(["git", "checkout", "main"])
+
+    # Configure Git user
+    subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
+    subprocess.run(["git", "config", "user.name", "naikpriti"])
+
+    # Update variable.tf
+    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    update_variables_tf(variable_tf_path, ip_addresses)
+
+    # Update version.txt
+    version_txt_path = "version.txt"
+    with open(version_txt_path, "w") as f:
+        f.write(f"Version: {new_tag_name}")
+
+    # Add, commit, and push the changes
+    subprocess.run(["git", "add", variable_tf_path, version_txt_path])
+    subprocess.run(["git", "commit", "-m", f"Update variables.tf and version.txt for release {new_tag_name}"])
+    subprocess.run(["git", "push", "origin", "main"])
 
     # Go back to the original directory
     os.chdir("..")
@@ -282,6 +313,9 @@ def main():
 
     # Fetch and process the JSON file
     new_tag_name, ip_addresses = fetch_and_process_json()
+
+    # Update the main branch with the new IP addresses and version
+    update_main_branch(ip_addresses, new_tag_name)
 
     # Create a branch for each latest version, incrementing the patch version
     for (major_minor, (patch, tag_name)) in latest_versions.items():
