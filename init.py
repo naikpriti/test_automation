@@ -57,20 +57,19 @@ def get_latest_minor_versions(versions):
 
     return latest_versions
 
-def create_branch(branch_name, tag_name):
-    # Fetch the tag SHA
+def fetch_tag_sha(tag_name):
     response = requests.get(tags_url, headers=headers)
     if response.status_code == 200:
         tags = response.json()
         for tag in tags:
             if tag["name"] == tag_name:
-                sha = tag["commit"]["sha"]
-                break
-        else:
-            print(f"Error: Tag '{tag_name}' not found.")
-            return
-    else:
-        print(f"Error fetching tags: {response.status_code} - {response.json()}")
+                return tag["commit"]["sha"]
+    print(f"Error: Tag '{tag_name}' not found.")
+    return None
+
+def create_branch(branch_name, tag_name):
+    sha = fetch_tag_sha(tag_name)
+    if not sha:
         return
 
     # Create a new branch from the tag
@@ -87,9 +86,15 @@ def create_branch(branch_name, tag_name):
 
 def update_variable_tf(branch_name):
     # Clone the repository and checkout the new branch
+    if os.path.exists(repo):
+        subprocess.run(["rm", "-rf", repo])
     subprocess.run(["git", "clone", f"https://github.com/{owner}/{repo}.git"])
     os.chdir(repo)
     subprocess.run(["git", "checkout", branch_name])
+
+    # Configure Git user
+    subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
+    subprocess.run(["git", "config", "user.name", "naikpriti"])
 
     # Update the variable.tf file
     with open("variable.tf", "a") as f:
