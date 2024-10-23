@@ -9,7 +9,7 @@ repo = "test_automation"  # e.g., "tensorflow"
 
 # GitHub API URLs for releases and branches
 releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
-branch_url = f"https://api.github.com/repos/{owner}/{repo}/git/refs/heads"
+branch_url = f"https://api.github.com/repos/{owner}/{repo}/git/refs"
 tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
 
 # Regular expression for version tags (e.g., v1.2.3 or 1.2.4)
@@ -56,10 +56,18 @@ def get_latest_minor_versions(versions):
     return latest_versions
 
 def create_branch(branch_name, tag_name):
+    # Fetch the tag SHA
+    response = requests.get(f"{tags_url}/{tag_name}", headers=headers)
+    if response.status_code == 200:
+        sha = response.json()["object"]["sha"]
+    else:
+        print(f"Error fetching tag '{tag_name}': {response.status_code} - {response.json()}")
+        return
+
     # Create a new branch from the tag
     data = {
         "ref": f"refs/heads/{branch_name}",
-        "sha": f"refs/tags/{tag_name}"
+        "sha": sha
     }
     response = requests.post(branch_url, headers=headers, json=data)
     
