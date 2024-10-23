@@ -8,7 +8,7 @@ import subprocess
 owner = "naikpriti"  # e.g., "tensorflow"
 repo = "test_automation"  # e.g., "tensorflow"
 
-# GitHub API URLs for releases, branches, and tags
+# GitHub API URLs for releases and branches
 releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
 branch_url = f"https://api.github.com/repos/{owner}/{repo}/git/refs"
 tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
@@ -74,11 +74,11 @@ def create_branch(branch_name, tag_name):
 
     # Create a new branch from the tag
     data = {
-        "ref": f"refs/heads/{branch_name}",  # Correct endpoint for creating branch
+        "ref": f"refs/heads/{branch_name}",
         "sha": sha
     }
     response = requests.post(branch_url, headers=headers, json=data)
-
+    
     if response.status_code == 201:
         print(f"Branch '{branch_name}' created successfully.")
     else:
@@ -88,16 +88,13 @@ def update_variable_tf(branch_name):
     # Clone the repository and checkout the new branch
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
-    subprocess.run(["git", "clone", f"https://github.com/{owner}/{repo}.git"])
+    subprocess.run(["git", "clone", f"https://{token}@github.com/{owner}/{repo}.git"])
     os.chdir(repo)
-    
-    # Fetch and create the branch if not already present
-    subprocess.run(["git", "fetch", "origin"])
-    subprocess.run(["git", "checkout", "-b", branch_name])
+    subprocess.run(["git", "checkout", branch_name])
 
     # Configure Git user
-    subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
-    subprocess.run(["git", "config", "user.name", "naikpriti"])
+    subprocess.run(["git", "config", "user.email", "you@example.com"])
+    subprocess.run(["git", "config", "user.name", "Your Name"])
 
     # Update the variable.tf file
     with open("variable.tf", "a") as f:
@@ -106,9 +103,7 @@ def update_variable_tf(branch_name):
     # Commit and push the changes
     subprocess.run(["git", "add", "variable.tf"])
     subprocess.run(["git", "commit", "-m", "Update variable.tf for new release"])
-    
-    # Push the branch
-    subprocess.run(["git", "push", "-u", "origin", branch_name])
+    subprocess.run(["git", "push", "origin", branch_name])
 
     # Go back to the original directory
     os.chdir("..")
@@ -116,7 +111,7 @@ def update_variable_tf(branch_name):
 def create_release(branch_name, new_tag_name):
     data = {
         "tag_name": new_tag_name,
-        "target_commitish": branch_name,  # Make sure this is the correct branch
+        "target_commitish": branch_name,
         "name": new_tag_name,
         "body": f"Release {new_tag_name}",
         "draft": False,
