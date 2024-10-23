@@ -5,7 +5,7 @@ import os
 
 # GitHub repository information
 owner = "naikpriti"  # e.g., "tensorflow"
-repo = "test-automation"  # e.g., "tensorflow"
+repo = "test_automation"  # e.g., "tensorflow"
 
 # GitHub API URLs for releases and branches
 releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
