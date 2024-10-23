@@ -110,7 +110,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
     # Update variable.tf
-    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    variable_tf_path = os.path.join("key-vault", "variable.tf")
     update_variables_tf(variable_tf_path, ip_addresses)
 
     # Update version.txt
