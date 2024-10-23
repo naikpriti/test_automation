@@ -1,0 +1,57 @@
+name: Update IPs and Create Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-ips:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
+
+    - name: Run the update script
+      run: python init.py
+
+    - name: Increment Versions and Create Releases
+      if: steps.check_changes.outputs.changes_detected == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        while IFS= read -r line; do
+          if [[ $line == modular_version* ]]; then
+            versions=$(echo $line | grep -oP '(?<=\{)[^}]*(?=\})')
+            IFS=', ' read -r -a version_array <<< "$versions"
+            new_versions=()
+            for version in "${version_array[@]}"; do
+              IFS='.' read -r major minor patch <<< "${version//v/}"
+              new_version="v$major.$minor.$((patch + 1))"
+              echo "Creating release for version $new_version"
+              gh release create "$new_version" --title "$new_version" --notes "Automatically created release for version $new_version"
+              new_versions+=("$new_version")
+            done
+            new_versions_str=$(IFS=', '; echo "{${new_versions[*]}}")
+            sed -i "s/^modular_version: .*/modular_version: $new_versions_str/" version.txt
+          fi
+        done < version.txt
+
+    - name: Commit Files
+      if: steps.check_changes.outputs.changes_detected == 'true'
+      run: |
+        git config --global --add safe.directory /__w/test_schedule/test_schedule
+        git config --global user.email "priti.naik@lexisnexisrisk.com"
+        git config --global user.name "naikpriti"
+        git add .
+        git diff-index --quiet HEAD || git commit -m "Automatically updated azure_allowed_ip_list in variables.tf and version.txt" -a
+        git push origin
