@@ -93,8 +93,8 @@ def update_variable_tf(branch_name):
     subprocess.run(["git", "checkout", branch_name])
 
     # Configure Git user
-    subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
-    subprocess.run(["git", "config", "user.name", "naikpriti"])
+    subprocess.run(["git", "config", "user.email", "you@example.com"])
+    subprocess.run(["git", "config", "user.name", "Your Name"])
 
     # Update the variable.tf file
     with open("variable.tf", "a") as f:
