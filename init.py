@@ -2,6 +2,7 @@ import requests
 import re
 from collections import defaultdict
 import os
+import subprocess
 
 # GitHub repository information
 owner = "naikpriti"  # e.g., "tensorflow"
@@ -11,6 +12,7 @@ repo = "test_automation"  # e.g., "tensorflow"
 releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
 branch_url = f"https://api.github.com/repos/{owner}/{repo}/git/refs"
 tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
+create_release_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
 
 # Regular expression for version tags (e.g., v1.2.3 or 1.2.4)
 version_regex = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
@@ -57,11 +59,18 @@ def get_latest_minor_versions(versions):
 
 def create_branch(branch_name, tag_name):
     # Fetch the tag SHA
-    response = requests.get(f"{tags_url}/{tag_name}", headers=headers)
+    response = requests.get(tags_url, headers=headers)
     if response.status_code == 200:
-        sha = response.json()["object"]["sha"]
+        tags = response.json()
+        for tag in tags:
+            if tag["name"] == tag_name:
+                sha = tag["commit"]["sha"]
+                break
+        else:
+            print(f"Error: Tag '{tag_name}' not found.")
+            return
     else:
-        print(f"Error fetching tag '{tag_name}': {response.status_code} - {response.json()}")
+        print(f"Error fetching tags: {response.status_code} - {response.json()}")
         return
 
     # Create a new branch from the tag
@@ -76,6 +85,40 @@ def create_branch(branch_name, tag_name):
     else:
         print(f"Error creating branch '{branch_name}': {response.status_code} - {response.json()}")
 
+def update_variable_tf(branch_name):
+    # Clone the repository and checkout the new branch
+    subprocess.run(["git", "clone", f"https://github.com/{owner}/{repo}.git"])
+    os.chdir(repo)
+    subprocess.run(["git", "checkout", branch_name])
+
+    # Update the variable.tf file
+    with open("variable.tf", "a") as f:
+        f.write("\n# Updated variable.tf for new release\n")
+
+    # Commit and push the changes
+    subprocess.run(["git", "add", "variable.tf"])
+    subprocess.run(["git", "commit", "-m", "Update variable.tf for new release"])
+    subprocess.run(["git", "push", "origin", branch_name])
+
+    # Go back to the original directory
+    os.chdir("..")
+
+def create_release(branch_name, new_tag_name):
+    data = {
+        "tag_name": new_tag_name,
+        "target_commitish": branch_name,
+        "name": new_tag_name,
+        "body": f"Release {new_tag_name}",
+        "draft": False,
+        "prerelease": False
+    }
+    response = requests.post(create_release_url, headers=headers, json=data)
+    
+    if response.status_code == 201:
+        print(f"Release '{new_tag_name}' created successfully.")
+    else:
+        print(f"Error creating release '{new_tag_name}': {response.status_code} - {response.json()}")
+
 def main():
     releases = fetch_releases()
     if not releases:
@@ -89,7 +132,7 @@ def main():
     # Fetch the latest minor versions for the last three major versions
     latest_versions = {}
     for major in sorted_major_versions:
-        minor_versions = {minor: versions[(major, minor)] for (maj, minor) in versions.keys() if maj == major}
+        minor_versions = {(major, minor): versions[(major, minor)] for (maj, minor) in versions.keys() if maj == major}
         latest_minor_versions = get_latest_minor_versions(minor_versions)
         latest_versions.update(latest_minor_versions)
 
@@ -102,9 +145,16 @@ def main():
         major, minor = major_minor
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
+        new_tag_name = f"v{major}.{minor}.{new_patch}"
         
         # Create the branch from the tag
         create_branch(new_branch_name, tag_name)
+        
+        # Update variable.tf in the new branch
+        update_variable_tf(new_branch_name)
+        
+        # Create a new release from the new branch
+        create_release(new_branch_name, new_tag_name)
 
 if __name__ == "__main__":
     main()
