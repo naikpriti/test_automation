@@ -85,7 +85,7 @@ def create_branch(branch_name, tag_name):
     else:
         print(f"Error creating branch '{branch_name}': {response.status_code} - {response.json()}")
 
-def update_variable_tf(branch_name):
+def update_files(branch_name, new_tag_name):
     # Clone the repository and checkout the new branch
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
@@ -102,8 +102,8 @@ def update_variable_tf(branch_name):
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
-    # Check if variable.tf exists and update or create it
-    variable_tf_path = "variable.tf"
+    # Update variable.tf
+    variable_tf_path = os.path.join("key-vault", "variable.tf")
     if os.path.exists(variable_tf_path):
         with open(variable_tf_path, "a") as f:
             f.write("\n# Updated variable.tf for new release\n")
@@ -111,9 +111,14 @@ def update_variable_tf(branch_name):
         with open(variable_tf_path, "w") as f:
             f.write("# Updated variable.tf for new release\n")
 
+    # Update version.txt
+    version_txt_path = "version.txt"
+    with open(version_txt_path, "w") as f:
+        f.write(new_tag_name)
+
     # Add, commit, and push the changes
-    subprocess.run(["git", "add", variable_tf_path])
-    subprocess.run(["git", "commit", "-m", "Update variable.tf for new release"])
+    subprocess.run(["git", "add", variable_tf_path, version_txt_path])
+    subprocess.run(["git", "commit", "-m", f"Update variable.tf and version.txt for release {new_tag_name}"])
 
     # Pull the latest changes from the remote branch to avoid non-fast-forward error
     try:
@@ -181,8 +186,8 @@ def main():
         # Create the branch from the tag
         create_branch(new_branch_name, tag_name)
         
-        # Update variable.tf in the new branch
-        update_variable_tf(new_branch_name)
+        # Update variable.tf and version.txt in the new branch
+        update_files(new_branch_name, new_tag_name)
         
         # Create a new release from the new branch
         create_release(new_branch_name, new_tag_name)
