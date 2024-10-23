@@ -5,8 +5,8 @@ import os
 import subprocess
 
 # GitHub repository information
-owner = "naikpriti"  # e.g., "tensorflow"
-repo = "test_automation"  # e.g., "tensorflow"
+owner = "naikpriti"  # Replace with your GitHub username
+repo = "test_automation"  # Replace with your repository name
 
 # GitHub API URLs for releases and branches
 releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
@@ -17,7 +17,7 @@ create_release_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
 # Regular expression for version tags (e.g., v1.2.3 or 1.2.4)
 version_regex = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 
-# Add your GitHub token here if needed
+# Get your GitHub token from environment variables or replace with your token directly
 token = os.getenv("GITHUB_TOKEN")
 
 # Add the authentication header with the token if it's available
@@ -90,11 +90,14 @@ def update_variable_tf(branch_name):
         subprocess.run(["rm", "-rf", repo])
     subprocess.run(["git", "clone", f"https://{token}@github.com/{owner}/{repo}.git"])
     os.chdir(repo)
-    subprocess.run(["git", "checkout", branch_name])
+    
+    # Fetch and create the branch if not already present
+    subprocess.run(["git", "fetch", "origin"])
+    subprocess.run(["git", "checkout", "-b", branch_name])
 
     # Configure Git user
-    subprocess.run(["git", "config", "user.email", "you@example.com"])
-    subprocess.run(["git", "config", "user.name", "Your Name"])
+    subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
+    subprocess.run(["git", "config", "user.name", "naikpriti"])
 
     # Update the variable.tf file
     with open("variable.tf", "a") as f:
@@ -103,7 +106,9 @@ def update_variable_tf(branch_name):
     # Commit and push the changes
     subprocess.run(["git", "add", "variable.tf"])
     subprocess.run(["git", "commit", "-m", "Update variable.tf for new release"])
-    subprocess.run(["git", "push", "origin", branch_name])
+    
+    # Push the branch with the token for authentication
+    subprocess.run(["git", "push", "-u", "origin", branch_name])
 
     # Go back to the original directory
     os.chdir("..")
