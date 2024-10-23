@@ -110,7 +110,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
     # Update variable.tf
-    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    variable_tf_path = os.path.join("key-vault", "variable.tf")
     update_variables_tf(variable_tf_path, ip_addresses)
 
     # Update version.txt
@@ -289,15 +289,16 @@ def main():
         major, minor = major_minor
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
+        new_release_tag = f"v{major}.{minor}.{new_patch}"
         
         # Create the branch from the tag
         create_branch(new_branch_name, tag_name)
         
         # Update variable.tf and version.txt in the new branch
-        update_files(new_branch_name, new_tag_name, ip_addresses)
+        update_files(new_branch_name, new_release_tag, ip_addresses)
         
         # Create a new release from the new branch
-        create_release(new_branch_name, new_tag_name)
+        create_release(new_branch_name, new_release_tag)
 
 if __name__ == "__main__":
     main()
