@@ -101,16 +101,26 @@ def update_variable_tf(branch_name):
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
-    # Update the variable.tf file
-    with open("variable.tf", "a") as f:
-        f.write("\n# Updated variable.tf for new release\n")
+    # Check if variable.tf exists and update or create it
+    variable_tf_path = "variable.tf"
+    if os.path.exists(variable_tf_path):
+        with open(variable_tf_path, "a") as f:
+            f.write("\n# Updated variable.tf for new release\n")
+    else:
+        with open(variable_tf_path, "w") as f:
+            f.write("# Updated variable.tf for new release\n")
 
-    # Commit the changes
-    subprocess.run(["git", "add", "variable.tf"])
+    # Add, commit, and push the changes
+    subprocess.run(["git", "add", variable_tf_path])
     subprocess.run(["git", "commit", "-m", "Update variable.tf for new release"])
 
     # Pull the latest changes from the remote branch to avoid non-fast-forward error
-    subprocess.run(["git", "pull", "--rebase", "origin", branch_name])
+    try:
+        subprocess.run(["git", "pull", "--rebase", "origin", branch_name], check=True)
+    except subprocess.CalledProcessError:
+        print("Conflict detected, resolving manually...")
+        # Resolve conflicts here if necessary
+        subprocess.run(["git", "rebase", "--continue"])
 
     # Push the changes, forcing update if necessary
     push_result = subprocess.run(["git", "push", "-u", "origin", branch_name])
