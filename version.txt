@@ -1,1 +1,1 @@
-Version: 2024.10.02
+Version: v1.4.2
