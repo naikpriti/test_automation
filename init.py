@@ -103,7 +103,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["git", "fetch", "origin"])
     
     # Checkout the new branch
-    subprocess.run(["git", "checkout", "-b", branch_name])
+    subprocess.run(["git", "checkout", branch_name])
 
     # Configure Git user
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
