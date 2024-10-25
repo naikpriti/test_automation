@@ -159,6 +159,9 @@ def update_main_branch(ip_addresses, new_tag_name):
     variable_tf_path = os.path.join("key-vault", "variables.tf")
     update_variables_tf(variable_tf_path, ip_addresses)
 
+    # Format the Terraform file
+    subprocess.run(["terraform", "fmt", variable_tf_path])
+
     # Update version.txt
     version_txt_path = "version.txt"
     with open(version_txt_path, "w") as f:
@@ -279,7 +282,7 @@ def fetch_and_process_json():
     # Step 10: Extract IPv4 addresses for the eastus region
     ipv4_addresses = []
     for value in data['values']:
-        if value['properties']['region'] == 'eastus':
+        if value['id'] == 'AzureCloud.eastus':
             for prefix in value['properties']['addressPrefixes']:
                 if ':' not in prefix:  # Check if the address is IPv4
                     ipv4_addresses.append(f'"{prefix}"')  # Ensure each IP is double-quoted
