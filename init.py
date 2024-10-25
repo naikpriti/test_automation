@@ -304,18 +304,14 @@ def main():
 
     versions = extract_versions(releases)
     
-    # Sort the major.minor versions and get the last three major versions
-    sorted_major_versions = sorted(set(major for major, _ in versions.keys()), reverse=True)[:3]
-
-    # Fetch the latest minor versions for the last three major versions
-    latest_versions = {}
-    for major in sorted_major_versions:
-        minor_versions = {(major, minor): versions[(major, minor)] for (maj, minor) in versions.keys() if maj == major}
-        latest_minor_versions = get_latest_minor_versions(minor_versions)
-        latest_versions.update(latest_minor_versions)
+    # Get the latest minor versions for all major.minor versions
+    latest_versions = get_latest_minor_versions(versions)
+    
+    # Sort the latest versions and get the last three
+    sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
 
     # Debug print to check the structure of latest_versions
-    print("Latest Versions:", latest_versions)
+    print("Latest Versions:", sorted_latest_versions)
 
     # Fetch and process the JSON file
     new_tag_name, ip_addresses = fetch_and_process_json()
@@ -324,7 +320,7 @@ def main():
     update_main_branch(ip_addresses, new_tag_name)
 
     # Create a branch for each latest version, incrementing the patch version
-    for (major_minor, (patch, tag_name)) in latest_versions.items():
+    for (major_minor, (patch, tag_name)) in sorted_latest_versions:
         print("Processing:", major_minor, patch, tag_name)  # Debug print
         major, minor = major_minor
         new_patch = patch + 1
