@@ -194,6 +194,14 @@ def create_release(branch_name, new_tag_name):
     else:
         print(f"Error creating release '{new_tag_name}': {response.status_code} - {response.json()}")
 
+def delete_branch(branch_name):
+    delete_url = f"{branch_url}/heads/{branch_name}"
+    response = requests.delete(delete_url, headers=headers)
+    if response.status_code == 204:
+        print(f"Branch '{branch_name}' deleted successfully.")
+    else:
+        print(f"Error deleting branch '{branch_name}': {response.status_code} - {response.json()}")
+
 def update_variables_tf(file_path, ip_addresses):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -335,6 +343,9 @@ def main():
         
         # Create a new release from the new branch
         create_release(new_branch_name, new_release_tag)
+        
+        # Delete the branch after creating the release
+        delete_branch(new_branch_name)
 
 if __name__ == "__main__":
     main()
