@@ -1,4 +1,4 @@
-#version: v1.4.0
+#version: v1.4.2
 
 variable "resource_group_name" {
   description = "Name of the resource group."
