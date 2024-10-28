@@ -330,8 +330,8 @@ def main():
         # Create the branch from the tag
         create_branch(new_branch_name, tag_name)
         
-        # Update variable.tf and version.txt in the new branch
-        update_files(new_branch_name, new_release_tag, ip_addresses)
+        # Update variable.tf and version.txt in the new branch with the JSON file version
+        update_files(new_branch_name, new_tag_name, ip_addresses)
         
         # Create a new release from the new branch
         create_release(new_branch_name, new_release_tag)
