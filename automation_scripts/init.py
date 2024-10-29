@@ -116,8 +116,11 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     # Format the Terraform file
     subprocess.run(["terraform", "fmt", variable_tf_path])
 
+    # Ensure the automation_scripts directory exists
+    os.makedirs("automation_scripts", exist_ok=True)
+
     # Update version.txt
-    version_txt_path = './automation_scripts/version.txt'
+    version_txt_path = os.path.join("automation_scripts", "version.txt")
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
 
@@ -165,8 +168,11 @@ def update_main_branch(ip_addresses, new_tag_name):
     # Format the Terraform file
     subprocess.run(["terraform", "fmt", variable_tf_path])
 
+    # Ensure the automation_scripts directory exists
+    os.makedirs("automation_scripts", exist_ok=True)
+
     # Update version.txt
-    version_txt_path = './automation_scripts/version.txt'
+    version_txt_path = os.path.join("automation_scripts", "version.txt")
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
 
@@ -247,7 +253,7 @@ def fetch_and_process_json():
     version_formatted = f"{version_date[:4]}.{version_date[4:6]}.{version_date[6:]}"
 
     # Step 4: Read the current version from version.txt
-    version_file = './automation_scripts/version.txt'
+    version_file = os.path.join("automation_scripts", "version.txt")
     with open(version_file, 'r') as file:
         current_version_line = next((line for line in file if line.startswith('Version:')), None)
         if current_version_line:
