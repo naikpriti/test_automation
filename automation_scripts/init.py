@@ -110,14 +110,14 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
     # Update variable.tf
-    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    variable_tf_path = os.path.join("./key-vault", "variables.tf")
     update_variables_tf(variable_tf_path, ip_addresses)
 
     # Format the Terraform file
     subprocess.run(["terraform", "fmt", variable_tf_path])
 
     # Update version.txt
-    version_txt_path = "version.txt"
+    version_txt_path = os.path.join("./automation_script", "version.txt")
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
 
@@ -159,14 +159,14 @@ def update_main_branch(ip_addresses, new_tag_name):
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
     # Update variable.tf
-    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    variable_tf_path = os.path.join("./key-vault", "variables.tf")
     update_variables_tf(variable_tf_path, ip_addresses)
 
     # Format the Terraform file
     subprocess.run(["terraform", "fmt", variable_tf_path])
 
     # Update version.txt
-    version_txt_path = "version.txt"
+    version_txt_path = os.path.join("./automation_script", "version.txt")
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
 
