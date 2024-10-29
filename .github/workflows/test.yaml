@@ -25,6 +25,7 @@ jobs:
     - name: Run update script
       id: run_update_script
       run: |
+        pwd
         python ./automation_scripts/init.py
       env: 
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
