@@ -117,7 +117,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["terraform", "fmt", variable_tf_path])
 
     # Update version.txt
-    version_txt_path = os.path.join("./automation_scripts", "version.txt")
+    version_txt_path = os.path.join("automation_scripts", "version.txt")
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
 
@@ -166,7 +166,7 @@ def update_main_branch(ip_addresses, new_tag_name):
     subprocess.run(["terraform", "fmt", variable_tf_path])
 
     # Update version.txt
-    version_txt_path = os.path.join("./automation_scripts", "version.txt")
+    version_txt_path = os.path.join("automation_scripts", "version.txt")
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
 
