@@ -1,0 +1,13 @@
+{
+    "repositories": [
+        {
+            "owner": "naikpriti",
+            "repo": "test_automation",
+            "files": ["key-vault/variables.tf"],
+            "variable": "azure_allowed_ip_list",
+            "region": "AzureCloud.eastus",
+            "resource_group": "app-dev-eastus",
+            "account_name": "ins-openai"
+        }
+    ]
+}

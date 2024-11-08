@@ -7,7 +7,16 @@ import time
 import json
 from packaging import version
 from bs4 import BeautifulSoup
-import argparse
+
+# GitHub repository information
+owner = "naikpriti"  # Replace with your GitHub username
+repo = "test_automation"  # Replace with your repository name
+
+# GitHub API URLs for releases and branches
+releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
+branch_url = f"https://api.github.com/repos/{owner}/{repo}/git/refs"
+tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
+create_release_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
 
 # Regular expression for version tags (e.g., v1.2.3 or 1.2.4)
 version_regex = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
@@ -27,7 +36,7 @@ headers = {
 # URL of the Microsoft download page
 download_page_url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
 
-def fetch_releases(releases_url):
+def fetch_releases():
     response = requests.get(releases_url, headers=headers)
     if response.status_code == 200:
         return response.json()
@@ -56,7 +65,7 @@ def get_latest_minor_versions(versions):
 
     return latest_versions
 
-def fetch_tag_sha(tags_url, tag_name):
+def fetch_tag_sha(tag_name):
     response = requests.get(tags_url, headers=headers)
     if response.status_code == 200:
         tags = response.json()
@@ -66,8 +75,8 @@ def fetch_tag_sha(tags_url, tag_name):
     print(f"Error: Tag '{tag_name}' not found.")
     return None
 
-def create_branch(branch_url, branch_name, tag_name, tags_url):
-    sha = fetch_tag_sha(tags_url, tag_name)
+def create_branch(branch_name, tag_name):
+    sha = fetch_tag_sha(tag_name)
     if not sha:
         return
 
@@ -83,7 +92,7 @@ def create_branch(branch_url, branch_name, tag_name, tags_url):
     else:
         print(f"Error creating branch '{branch_name}': {response.status_code} - {response.json()}")
 
-def update_files(owner, repo, branch_name, new_tag_name, ip_addresses, file_paths, variable_name):
+def update_files(branch_name, new_tag_name, ip_addresses):
     # Clone the repository and checkout the new branch
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
@@ -100,13 +109,12 @@ def update_files(owner, repo, branch_name, new_tag_name, ip_addresses, file_path
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
-    # Update specified files
-    for file_path in file_paths:
-        update_variables_tf(file_path, ip_addresses, variable_name)
+    # Update variable.tf
+    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    update_variables_tf(variable_tf_path, ip_addresses)
 
-    # Format the Terraform files
-    for file_path in file_paths:
-        subprocess.run(["terraform", "fmt", file_path])
+    # Format the Terraform file
+    subprocess.run(["terraform", "fmt", variable_tf_path])
 
     # Ensure the automation_scripts directory exists
     os.makedirs("automation_scripts", exist_ok=True)
@@ -117,8 +125,8 @@ def update_files(owner, repo, branch_name, new_tag_name, ip_addresses, file_path
         f.write(f"Version: {new_tag_name}")
 
     # Add, commit, and push the changes
-    subprocess.run(["git", "add"] + file_paths + [version_txt_path])
-    subprocess.run(["git", "commit", "-m", f"Update files and version.txt for release {new_tag_name}"])
+    subprocess.run(["git", "add", variable_tf_path, version_txt_path])
+    subprocess.run(["git", "commit", "-m", f"Update variables.tf and version.txt for release {new_tag_name}"])
 
     # Pull the latest changes from the remote branch to avoid non-fast-forward error
     try:
@@ -139,7 +147,7 @@ def update_files(owner, repo, branch_name, new_tag_name, ip_addresses, file_path
     # Go back to the original directory
     os.chdir("..")
 
-def update_main_branch(owner, repo, ip_addresses, new_tag_name, file_paths, variable_name):
+def update_main_branch(ip_addresses, new_tag_name):
     # Clone the repository and checkout the main branch
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
@@ -153,13 +161,12 @@ def update_main_branch(owner, repo, ip_addresses, new_tag_name, file_paths, vari
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
 
-    # Update specified files
-    for file_path in file_paths:
-        update_variables_tf(file_path, ip_addresses, variable_name)
+    # Update variable.tf
+    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    update_variables_tf(variable_tf_path, ip_addresses)
 
-    # Format the Terraform files
-    for file_path in file_paths:
-        subprocess.run(["terraform", "fmt", file_path])
+    # Format the Terraform file
+    subprocess.run(["terraform", "fmt", variable_tf_path])
 
     # Ensure the automation_scripts directory exists
     os.makedirs("automation_scripts", exist_ok=True)
@@ -170,14 +177,14 @@ def update_main_branch(owner, repo, ip_addresses, new_tag_name, file_paths, vari
         f.write(f"Version: {new_tag_name}")
 
     # Add, commit, and push the changes
-    subprocess.run(["git", "add"] + file_paths + [version_txt_path])
-    subprocess.run(["git", "commit", "-m", f"Update files and version.txt for release {new_tag_name}"])
+    subprocess.run(["git", "add", variable_tf_path, version_txt_path])
+    subprocess.run(["git", "commit", "-m", f"Update variables.tf and version.txt for release {new_tag_name}"])
     subprocess.run(["git", "push", "origin", "main"])
 
     # Go back to the original directory
     os.chdir("..")
 
-def create_release(create_release_url, branch_name, new_tag_name):
+def create_release(branch_name, new_tag_name):
     data = {
         "tag_name": new_tag_name,
         "target_commitish": branch_name,
@@ -193,7 +200,7 @@ def create_release(create_release_url, branch_name, new_tag_name):
     else:
         print(f"Error creating release '{new_tag_name}': {response.status_code} - {response.json()}")
 
-def delete_branch(branch_url, branch_name):
+def delete_branch(branch_name):
     delete_url = f"{branch_url}/heads/{branch_name}"
     response = requests.delete(delete_url, headers=headers)
     if response.status_code == 204:
@@ -201,7 +208,7 @@ def delete_branch(branch_url, branch_name):
     else:
         print(f"Error deleting branch '{branch_name}': {response.status_code} - {response.json()}")
 
-def update_variables_tf(file_path, ip_addresses, variable_name):
+def update_variables_tf(file_path, ip_addresses):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
@@ -209,7 +216,7 @@ def update_variables_tf(file_path, ip_addresses, variable_name):
     with open(file_path, 'w') as file:
         inside_default_block = False
         for line in lines:
-            if f'variable "{variable_name}"' in line:
+            if 'variable "azure_allowed_ip_list"' in line:
                 inside_default_block = True
             if inside_default_block and line.strip().startswith('default ='):
                 file.write(f'default = [{", ".join(ip_addresses)}]\n')
@@ -222,7 +229,7 @@ def update_variables_tf(file_path, ip_addresses, variable_name):
                 file.write(line)
     return updated
 
-def fetch_and_process_json(region):
+def fetch_and_process_json():
     # Step 1: Fetch the HTML content of the confirmation page
     response = requests.get(download_page_url, headers={'User-Agent': 'Github Actions'})
     if response.status_code != 200:
@@ -289,86 +296,62 @@ def fetch_and_process_json(region):
     with open(json_file_name, 'r') as json_file:
         data = json.load(json_file)
 
-    # Step 10: Extract IPv4 addresses for the specified region
+    # Step 10: Extract IPv4 addresses for the eastus region
     ipv4_addresses = []
     for value in data['values']:
-        if value['id'] == region:
+        if value['id'] == 'AzureCloud.eastus':
             for prefix in value['properties']['addressPrefixes']:
                 if ':' not in prefix:  # Check if the address is IPv4
                     ipv4_addresses.append(f'"{prefix}"')  # Ensure each IP is double-quoted
 
     # Step 11: Print the extracted IPv4 addresses
-    print(f"IPv4 addresses for {region} region:")
+    print("IPv4 addresses for eastus region:")
     for address in ipv4_addresses:
         print(address)
-
-    # Save IP addresses to a file
-    with open("ip_addresses.txt", "w") as f:
-        for ip in ipv4_addresses:
-            f.write(f"{ip}\n")
 
     return version_formatted, ipv4_addresses
 
 def main():
-    parser = argparse.ArgumentParser(description="GitHub Automation Script")
-    parser.add_argument("--config", required=True, help="Path to the JSON configuration file")
-    args = parser.parse_args()
+    releases = fetch_releases()
+    if not releases:
+        return
 
-    with open(args.config, 'r') as config_file:
-        config = json.load(config_file)
+    versions = extract_versions(releases)
+    
+    # Get the latest minor versions for all major.minor versions
+    latest_versions = get_latest_minor_versions(versions)
+    
+    # Sort the latest versions and get the last three
+    sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
 
-    for repo_config in config["repositories"]:
-        owner = repo_config["owner"]
-        repo = repo_config["repo"]
-        files = repo_config["files"]
-        variable = repo_config["variable"]
-        region = repo_config["region"]
+    # Debug print to check the structure of latest_versions
+    print("Latest Versions:", sorted_latest_versions)
 
-        releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
-        branch_url = f"https://api.github.com/repos/{owner}/{repo}/git/refs"
-        tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
-        create_release_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
+    # Fetch and process the JSON file
+    new_tag_name, ip_addresses = fetch_and_process_json()
 
-        releases = fetch_releases(releases_url)
-        if not releases:
-            continue
+    # Update the main branch with the new IP addresses and version
+    update_main_branch(ip_addresses, new_tag_name)
 
-        versions = extract_versions(releases)
+    # Create a branch for each latest version, incrementing the patch version
+    for (major_minor, (patch, tag_name)) in sorted_latest_versions:
+        print("Processing:", major_minor, patch, tag_name)  # Debug print
+        major, minor = major_minor
+        new_patch = patch + 1
+        new_branch_name = f"release-v{major}.{minor}.{new_patch}"
+        new_release_tag = f"v{major}.{minor}.{new_patch}"
         
-        # Get the latest minor versions for all major.minor versions
-        latest_versions = get_latest_minor_versions(versions)
+        # Create the branch from the tag
+        create_branch(new_branch_name, tag_name)
         
-        # Sort the latest versions and get the last three
-        sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
-
-        # Debug print to check the structure of latest_versions
-        print("Latest Versions:", sorted_latest_versions)
-
-        # Fetch and process the JSON file
-        new_tag_name, ip_addresses = fetch_and_process_json(region)
-
-        # Update the main branch with the new IP addresses and version
-        update_main_branch(owner, repo, ip_addresses, new_tag_name, files, variable)
-
-        # Create a branch for each latest version, incrementing the patch version
-        for (major_minor, (patch, tag_name)) in sorted_latest_versions:
-            print("Processing:", major_minor, patch, tag_name)  # Debug print
-            major, minor = major_minor
-            new_patch = patch + 1
-            new_branch_name = f"release-v{major}.{minor}.{new_patch}"
-            new_release_tag = f"v{major}.{minor}.{new_patch}"
-            
-            # Create the branch from the tag
-            create_branch(branch_url, new_branch_name, tag_name, tags_url)
-            
-            # Update files in the new branch with the JSON file version
-            update_files(owner, repo, new_branch_name, new_tag_name, ip_addresses, files, variable)
-            
-            # Create a new release from the new branch
-            create_release(create_release_url, new_branch_name, new_release_tag)
-            
-            # Delete the branch after creating the release
-            delete_branch(branch_url, new_branch_name)
+        # Update variable.tf and version.txt in the new branch with the JSON file version
+        update_files(new_branch_name, new_tag_name, ip_addresses)
+        
+        # Create a new release from the new branch
+        create_release(new_branch_name, new_release_tag)
+        
+        # Delete the branch after creating the release
+        delete_branch(new_branch_name)
 
 if __name__ == "__main__":
     main()

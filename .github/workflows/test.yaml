@@ -25,8 +25,13 @@ jobs:
     - name: Run update script
       id: run_update_script
       run: |
-        pwd
-        python ./automation_scripts/init.py
+        python ./automation_scripts/init.py --config path/to/config.json
       env: 
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
-      continue-on-error: true
+
+    - name: Install jq
+      run: sudo apt-get install -y jq
+
+    - name: Run Azure CLI command
+      run: |
+        bash ./automation_scripts/update_azure.sh
