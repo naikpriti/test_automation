@@ -25,7 +25,7 @@ jobs:
     - name: Run update script
       id: run_update_script
       run: |
-        python ./automation_scripts/init.py --config path/to/config.json
+        python ./automation_scripts/init.py --config ./automation_scripts/input.json
       env: 
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
