@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Path to the JSON configuration file
-CONFIG_FILE="../input.json"
+CONFIG_FILE="./automation_scripts/input.json"
 
 # Read resource group and account name from the JSON configuration file
 RESOURCE_GROUP=$(jq -r '.repositories[0].resource_group' "$CONFIG_FILE")
