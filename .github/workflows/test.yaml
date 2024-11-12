@@ -46,4 +46,5 @@ jobs:
 
     - name: Run Azure CLI command
       run: |
+        ls -ltr
         bash ./automation_scripts/az_ip_update.sh
