@@ -5,9 +5,9 @@
             "repo": "test_automation",
             "files": ["key-vault/variables.tf"],
             "variable": "azure_allowed_ip_list",
-            "region": "AzureCloud.eastus",
-            "resource_group": "app-dev-eastus",
-            "account_name": "ins-openai"
+            "region": "CognitiveServicesManagement",
+            "resource_group": "test-ai",
+            "account_name": "test-aiservice"
         }
     ]
 }
