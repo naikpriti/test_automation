@@ -298,9 +298,9 @@ def fetch_and_process_json(region):
                     ipv4_addresses.append(f'"{prefix}"')  # Ensure each IP is double-quoted
 
     # Step 11: Print the extracted IPv4 addresses
-    print(f"IPv4 addresses for {region} region:")
-    for address in ipv4_addresses:
-        print(address)
+    #print(f"IPv4 addresses for {region} region:")
+    #for address in ipv4_addresses:
+    #    print(address)
 
     # Save IP addresses to a file
     with open("ip_addresses.txt", "w") as f:
