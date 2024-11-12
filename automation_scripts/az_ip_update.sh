@@ -7,6 +7,7 @@ ACCOUNT_NAME=$(jq -r '.repositories[0].account_name' "$CONFIG_FILE")
 
 # Get the current list of IP rules
 CURRENT_IPS=$(az cognitiveservices account network-rule list --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --query "ipRules[].value" -o tsv)
+echo "Current IP addresses: $CURRENT_IPS"
 
 # Read IP addresses from the file and add only new IP addresses
 while IFS= read -r IP; do
