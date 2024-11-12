@@ -3,6 +3,10 @@ name: Update IPs and Create Release
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   update-ips:
     runs-on: ubuntu-latest
