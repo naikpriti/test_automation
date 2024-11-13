@@ -1,0 +1,8 @@
+{
+    "repositories": [
+        {
+            "resource_group": "test-ai",
+            "account_name": "test-searchai"
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONFIG_FILE="./automation_scripts/input.json"
+CONFIG_FILE="./automation_scripts/command.json"
 
 RESOURCE_GROUP=$(jq -r '.repositories[0].resource_group' "$CONFIG_FILE")
 ACCOUNT_NAME=$(jq -r '.repositories[0].account_name' "$CONFIG_FILE")

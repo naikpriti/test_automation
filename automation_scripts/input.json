@@ -5,9 +5,14 @@
             "repo": "test_automation",
             "files": ["key-vault/variables.tf"],
             "variable": "azure_allowed_ip_list",
-            "region": "AzureCloud.eastus",
-            "resource_group": "test-ai",
-            "account_name": "test-searchai"
+            "region": "AzureCloud.eastus"
+        },
+        {
+            "owner": "naikpriti",
+            "repo": "test-schedule",
+            "files": ["key-vault/variables.tf"],
+            "variable": "azure_allowed_ip_list",
+            "region": "AzureCloud.eastus"
         }
     ]
 }
