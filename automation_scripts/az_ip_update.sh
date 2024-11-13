@@ -13,19 +13,28 @@ echo "Current IP addresses: $CURRENT_IPS"
 echo "IP addresses from ip_addresses.txt:"
 cat ip_addresses.txt
 
-# Read IP addresses from the file and add only new IP addresses
-
+# Read IP addresses from the file into a set
+declare -A IP_SET
 while IFS= read -r IP; do
     IP=$(echo "$IP" | tr -d '"' | xargs)
-    echo "Processing IP: $IP"
-    if ! echo "$CURRENT_IPS" | grep -q "$IP"; then
-        az cognitiveservices account network-rule add --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo "Successfully added IP: $IP"
-        else
-            echo "Failed to add IP: $IP"
-        fi
-    else
-        echo "IP already exists: $IP"
-    fi
+    IP_SET["$IP"]=1
 done < ip_addresses.txt
+
+# Determine IPs to add
+NEW_IPS=()
+for IP in "${!IP_SET[@]}"; do
+    if ! echo "$CURRENT_IPS" | grep -q -w "$IP"; then
+        NEW_IPS+=("$IP")
+    fi
+done
+
+# Add new IP addresses
+for IP in "${NEW_IPS[@]}"; do
+    echo "Adding IP: $IP"
+    az cognitiveservices account network-rule add --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo "Successfully added IP: $IP"
+    else
+        echo "Failed to add IP: $IP"
+    fi
+done
