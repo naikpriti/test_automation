@@ -7,7 +7,7 @@
             "variable": "azure_allowed_ip_list",
             "region": "AzureCloud.eastus",
             "resource_group": "test-ai",
-            "account_name": "test-aiservice"
+            "account_name": "test-searchai"
         }
     ]
 }
