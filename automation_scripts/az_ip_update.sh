@@ -12,7 +12,7 @@ echo "Current IP addresses: $CURRENT_IPS"
 # Remove all existing IP rules
 for IP in $CURRENT_IPS; do
     echo "Removing IP: $IP"
-    az cognitiveservices account network-rule remove --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" > /dev/null 2>&1
+    az cognitiveservices account network-rule remove --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" 
     if [ $? -eq 0 ]; then
         echo "Successfully removed IP: $IP"
     else
