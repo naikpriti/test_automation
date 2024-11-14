@@ -12,11 +12,12 @@ echo "Current IP addresses: $CURRENT_IPS"
 # Remove all existing IP rules
 for IP in $CURRENT_IPS; do
     echo "Removing IP: $IP"
-    az cognitiveservices account network-rule remove --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" 
+    ERROR_OUTPUT=$(az cognitiveservices account network-rule remove --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" 2>&1 > /dev/null)
     if [ $? -eq 0 ]; then
         echo "Successfully removed IP: $IP"
     else
         echo "Failed to remove IP: $IP"
+        echo "Error: $ERROR_OUTPUT"
     fi
 done
 
@@ -28,10 +29,11 @@ cat ip_addresses.txt
 while IFS= read -r IP; do
     IP=$(echo "$IP" | tr -d '"' | xargs)
     echo "Adding IP: $IP"
-    az cognitiveservices account network-rule add --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP"
+    ERROR_OUTPUT=$(az cognitiveservices account network-rule add --resource-group "$RESOURCE_GROUP" --name "$ACCOUNT_NAME" --ip-address "$IP" 2>&1 > /dev/null)
     if [ $? -eq 0 ]; then
         echo "Successfully added IP: $IP"
     else
         echo "Failed to add IP: $IP"
+        echo "Error: $ERROR_OUTPUT"
     fi
 done < ip_addresses.txt
