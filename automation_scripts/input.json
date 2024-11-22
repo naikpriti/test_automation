@@ -6,13 +6,6 @@
             "files": ["key-vault/variables.tf"],
             "variable": "azure_allowed_ip_list",
             "region": "AzureCloud.eastus"
-        },
-        {
-            "owner": "naikpriti",
-            "repo": "test-schedule",
-            "files": ["key-vault/variables.tf"],
-            "variable": "azure_allowed_ip_list",
-            "region": "AzureCloud.eastus"
         }
     ]
 }
