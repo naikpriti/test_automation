@@ -34,7 +34,7 @@ jobs:
     - name: Run update script
       id: run_update_script
       run: |
-        python automation_scripts/ip_automation.py
+        python automation_scripts/init.py
       env: 
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
       continue-on-error: true
