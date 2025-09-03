@@ -46,7 +46,7 @@ def send_email(subject, body):
     smtp_port = int(os.getenv("SMTP_PORT", "25"))
     smtp_username = os.getenv("SMTP_USERNAME", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
-    recipients = os.getenv("EMAIL_RECIPIENTS", "priti.naik@lexisnexisrisk.com).split(",")
+    recipients = os.getenv("EMAIL_RECIPIENTS", "priti.naik@lexisnexisrisk.com")
 
     msg = MIMEMultipart()
     msg["From"] = smtp_username
