@@ -45,7 +45,7 @@ def send_email(subject, body):
     smtp_server = os.getenv("SMTP_SERVER", "appmail-test.risk.regn.net")
     smtp_port = int(os.getenv("SMTP_PORT", "25"))
     from_email = os.getenv("SMTP_FROM", "no-reply@lexisnexisrisk.com")
-    recipients = os.getenv("EMAIL_RECIPIENTS", "priti.naik@lexisnexisrisk.com").split(",")
+    recipients = os.getenv("EMAIL_RECIPIENTS", "priti.naik@lexisnexisrisk.com")
 
     msg = MIMEMultipart()
     msg["From"] = from_email
