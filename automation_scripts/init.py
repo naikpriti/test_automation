@@ -9,7 +9,7 @@ from packaging import version
 from bs4 import BeautifulSoup
 
 # GitHub repository information
-owner = "LexisNexis-RBA"  # Replace with your GitHub username
+owner = "naikpriti"  # Replace with your GitHub username
 repo = "test_automation"  # Replace with your repository name
 
 # GitHub API URLs for releases and branches
