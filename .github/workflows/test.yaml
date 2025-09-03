@@ -2,10 +2,8 @@ name: Update IPs and Create Release
 
 on:
   workflow_dispatch:
-
-permissions:
-  id-token: write
-  contents: read
+  schedule:
+    - cron: "0 4 */2 * *"  
 
 jobs:
   update-ips:
@@ -29,22 +27,7 @@ jobs:
     - name: Run update script
       id: run_update_script
       run: |
-        python ./automation_scripts/init.py --config ./automation_scripts/input.json
+        python automation_scripts/ip_automation.py
       env: 
-        GITHUB_TOKEN: ${{ secrets.TOKEN }}
-
-    - name: Install jq
-      run: sudo apt-get install -y jq
-
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Run Azure CLI command
-      run: |
-        ls -ltr
-        bash ./automation_scripts/az_ip_update.sh
+        GITHUB_TOKEN: ${{ secrets.PAT }}
+      continue-on-error: true
