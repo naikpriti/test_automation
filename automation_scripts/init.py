@@ -42,23 +42,21 @@ download_page_url = "https://www.microsoft.com/en-us/download/confirmation.aspx?
 
 def send_email(subject, body):
     # Configure these via environment variables or update with your values.
-    smtp_server = os.getenv("SMTP_SERVER", "Appmail-test.risk.regn.net'")
+    smtp_server = os.getenv("SMTP_SERVER", "appmail-test.risk.regn.net")
     smtp_port = int(os.getenv("SMTP_PORT", "25"))
-    smtp_username = os.getenv("SMTP_USERNAME", "")
-    smtp_password = os.getenv("SMTP_PASSWORD", "")
-    recipients = os.getenv("EMAIL_RECIPIENTS", "priti.naik@lexisnexisrisk.com")
+    from_email = os.getenv("SMTP_FROM", "no-reply@lexisnexisrisk.com")
+    recipients = os.getenv("EMAIL_RECIPIENTS", "priti.naik@lexisnexisrisk.com").split(",")
 
     msg = MIMEMultipart()
-    msg["From"] = smtp_username
+    msg["From"] = from_email
     msg["To"] = ", ".join(recipients)
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_username, smtp_password)
-            server.sendmail(smtp_username, recipients, msg.as_string())
+            # No TLS or login is needed when sending via an SMTP proxy.
+            server.sendmail(from_email, recipients, msg.as_string())
         print(f"Email sent to {', '.join(recipients)}")
     except Exception as e:
         print(f"Failed to send email: {e}")
