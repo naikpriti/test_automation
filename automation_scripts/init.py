@@ -259,26 +259,27 @@ def main():
         return
     versions = extract_versions(releases)
     latest_versions = get_latest_minor_versions(versions)
+    # Sort in descending order so that the highest version is first.
     sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)
     print("Sorted Versions:", sorted_latest_versions)
     new_tag_name, ip_addresses = fetch_and_process_json()
-    # Always update the main branch with the new version,
-    # then create release branch only if the IP list (variables.tf) actually changed.
+    # Always update the main branch with the new version.
     ip_updated = update_main_branch(ip_addresses, new_tag_name)
     if not ip_updated:
         print("No new IP addresses found in main branch. Skipping release branch creation.")
         exit(0)
-    # Select only the highest version entry.
-    (major_minor, (patch, tag_name)) = sorted_latest_versions[0]
-    print("Processing highest version:", major_minor, patch, tag_name)
-    major, minor = major_minor
-    new_patch = patch + 1
-    new_branch_name = f"release-v{major}.{minor}.{new_patch}"
-    new_release_tag = f"v{major}.{minor}.{new_patch}"
-    create_branch(new_branch_name, tag_name)
-    update_files(new_branch_name, new_tag_name, ip_addresses)
-    create_release(new_branch_name, new_release_tag)
-    delete_branch(new_branch_name)
+    # Iterate over all version groups.
+    # GitHub will mark the highest semver release as the latest.
+    for (major_minor, (patch, tag_name)) in sorted_latest_versions:
+        major, minor = major_minor
+        new_patch = patch + 1
+        new_branch_name = f"release-v{major}.{minor}.{new_patch}"
+        new_release_tag = f"v{major}.{minor}.{new_patch}"
+        print(f"Processing version group: {major_minor}, patch {patch} -> creating release {new_release_tag}")
+        create_branch(new_branch_name, tag_name)
+        update_files(new_branch_name, new_tag_name, ip_addresses)
+        create_release(new_branch_name, new_release_tag)
+        delete_branch(new_branch_name)
 
 if __name__ == "__main__":
     main()
