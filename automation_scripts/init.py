@@ -131,8 +131,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
     variable_tf_path = os.path.join("key-vault", "variables.tf")
-    # For branch updates, get update status (although version.txt is updated regardless)
-    updated = update_variables_tf(variable_tf_path, ip_addresses)
+    ip_updated = update_variables_tf(variable_tf_path, ip_addresses)
     subprocess.run(["terraform", "fmt", variable_tf_path])
     os.makedirs("automation_scripts", exist_ok=True)
     version_txt_path = os.path.join("automation_scripts", "version.txt")
@@ -150,7 +149,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
         print(f"Non-fast-forward push detected, force pushing branch '{branch_name}'")
         subprocess.run(["git", "push", "-u", "--force", "origin", branch_name])
     os.chdir("..")
-    return updated
+    return ip_updated
 
 def update_main_branch(ip_addresses, new_tag_name):
     if os.path.exists(repo):
@@ -161,21 +160,19 @@ def update_main_branch(ip_addresses, new_tag_name):
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
     variable_tf_path = os.path.join("key-vault", "variables.tf")
-    updated = update_variables_tf(variable_tf_path, ip_addresses)
-    if not updated:
-        print("No new IP addresses found in main branch, skipping commit and push.")
-        os.chdir("..")
-        return False
+    # Update variables.tf if needed, but save the status
+    ip_updated = update_variables_tf(variable_tf_path, ip_addresses)
     subprocess.run(["terraform", "fmt", variable_tf_path])
     os.makedirs("automation_scripts", exist_ok=True)
     version_txt_path = os.path.join("automation_scripts", "version.txt")
+    # Always update version.txt since the version changes even if IPs are the same
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
-    subprocess.run(["git", "commit", "-m", f"Update variables.tf and version.txt for release {new_tag_name}"])
+    subprocess.run(["git", "commit", "-m", f"Update version.txt for release {new_tag_name}"])
     subprocess.run(["git", "push", "origin", "main"])
     os.chdir("..")
-    return True
+    return ip_updated
 
 def create_release(branch_name, new_tag_name):
     data = {
@@ -264,9 +261,10 @@ def main():
     sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
     print("Latest Versions:", sorted_latest_versions)
     new_tag_name, ip_addresses = fetch_and_process_json()
-    updated_main = update_main_branch(ip_addresses, new_tag_name)
-    if not updated_main:
-        print("No new IP addresses found in main branch. Skipping release creation.")
+    # Always update main branch (version.txt gets updated) but store if IP list changed
+    ip_updated = update_main_branch(ip_addresses, new_tag_name)
+    if not ip_updated:
+        print("No new IP addresses found in main branch. Skipping release branch creation.")
         exit(0)
     for (major_minor, (patch, tag_name)) in sorted_latest_versions:
         print("Processing:", major_minor, patch, tag_name)
