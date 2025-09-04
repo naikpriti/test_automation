@@ -135,6 +135,7 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["terraform", "fmt", variable_tf_path])
     os.makedirs("automation_scripts", exist_ok=True)
     version_txt_path = os.path.join("automation_scripts", "version.txt")
+    # Always update version.txt with the new version
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
@@ -160,12 +161,12 @@ def update_main_branch(ip_addresses, new_tag_name):
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
     variable_tf_path = os.path.join("key-vault", "variables.tf")
-    # Update variables.tf if needed, but save the status
+    # Update variables.tf and record if IP list changed
     ip_updated = update_variables_tf(variable_tf_path, ip_addresses)
     subprocess.run(["terraform", "fmt", variable_tf_path])
     os.makedirs("automation_scripts", exist_ok=True)
     version_txt_path = os.path.join("automation_scripts", "version.txt")
-    # Always update version.txt since the version changes even if IPs are the same
+    # Always update version.txt as version changes over time
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
@@ -261,7 +262,8 @@ def main():
     sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
     print("Latest Versions:", sorted_latest_versions)
     new_tag_name, ip_addresses = fetch_and_process_json()
-    # Always update main branch (version.txt gets updated) but store if IP list changed
+    # Always update the main branch with the new version,
+    # then create release branches only if the IP list (variables.tf) actually changed.
     ip_updated = update_main_branch(ip_addresses, new_tag_name)
     if not ip_updated:
         print("No new IP addresses found in main branch. Skipping release branch creation.")
