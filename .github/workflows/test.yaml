@@ -38,3 +38,39 @@ jobs:
       env: 
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
       continue-on-error: true
+    
+    - name: Check if release created
+      id: check_release
+      run: |
+        if grep -q "Release '" output.log; then
+          echo "release_created=true" >> $GITHUB_OUTPUT
+        else
+          echo "release_created=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    outputs:
+      release_created: ${{ steps.check_release.outputs.release_created }}
+
+  notify:
+    needs: update-ips
+    runs-on: ubuntu-latest   # your private runner with SMTP access
+    if: needs.update-ips.outputs.release_created == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download logs from previous job
+        uses: actions/download-artifact@v3
+        with:
+          name: output-log
+          path: .
+
+      - name: Send test email through SMTP proxy
+        run: |
+          python automation_scripts/send_email.py "Test Release Notification" "This is a test email sent through SMTP proxy"
+        env:
+          SMTP_SERVER: appmail-test.risk.regn.net
+          SMTP_PORT: 25
+          SMTP_USER: noreply@lexisnexisrisk.com
+          SMTP_TO: priti.naik@lexisnexisrisk.com
