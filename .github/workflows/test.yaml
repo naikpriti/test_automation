@@ -74,11 +74,30 @@ jobs:
           name: output-log
           path: .
 
+      
+      - name: Extract release info
+        id: extract_release
+        run: |
+          # Extract only the lines that refer to release creation
+          RELEASE_INFO=$(grep "Release" output.log | tr '\n' '; ')
+          echo "release_info=${RELEASE_INFO}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      # - name: Send test email through SMTP proxy
+      #   run: |
+      #     python automation_scripts/send_email.py "Release Notification" "${{ steps.extract_release.outputs.release_info }}"
+      #   env:
+      #     SMTP_SERVER: ""
+      #     SMTP_PORT: 25
+      #     SMTP_USER: ""
+      #     SMTP_TO: ""
+
       - name: Send test email through SMTP proxy
         run: |
-          python automation_scripts/send_email.py "Test Release Notification" "This is a test email sent through SMTP proxy"
+          python automation_scripts/send_email.py "Release Notification" "${{ steps.extract_release.outputs.release_info }}"
         env:
-          SMTP_SERVER: ""
-          SMTP_PORT: 25
-          SMTP_USER: ""
-          SMTP_TO: ""
+          SMTP_SERVER: smtp.gmail.com
+          SMTP_PORT: 587
+          SMTP_USER: naikdpriti@gmail.com
+          SMTP_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+          SMTP_TO: naikdpriti@gmail.com
