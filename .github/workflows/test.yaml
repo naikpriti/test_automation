@@ -34,10 +34,16 @@ jobs:
     - name: Run update script
       id: run_update_script
       run: |
-        python automation_scripts/init.py
+        python automation_scripts/init.py > output.log 2>&1
       env: 
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
       continue-on-error: true
+    
+    - name: Upload output log
+      uses: actions/upload-artifact@v3
+      with:
+          name: output-log
+          path: output.log
     
     - name: Check if release created
       id: check_release
@@ -70,7 +76,7 @@ jobs:
         run: |
           python automation_scripts/send_email.py "Test Release Notification" "This is a test email sent through SMTP proxy"
         env:
-          SMTP_SERVER: appmail-test.risk.regn.net
+          SMTP_SERVER: ""
           SMTP_PORT: 25
-          SMTP_USER: noreply@lexisnexisrisk.com
-          SMTP_TO: priti.naik@lexisnexisrisk.com
+          SMTP_USER: ""
+          SMTP_TO: ""
