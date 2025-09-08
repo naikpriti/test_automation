@@ -178,13 +178,13 @@ def update_main_branch(ip_addresses, new_tag_name):
 def create_release(branch_name, new_tag_name, make_latest=False):
     data = {
          "tag_name": new_tag_name,
-+        "target_commitish": branch_name,
-+        "name": new_tag_name,
-+        "body": f"Release {new_tag_name}",
-+        "draft": False,
-+        "prerelease": False,
-+        # Force which release is latest
-+        "make_latest": "true" if make_latest else "false"
+        "target_commitish": branch_name,
+        "name": new_tag_name,
+        "body": f"Release {new_tag_name}",
+        "draft": False,
+        "prerelease": False,
+        # Force which release is latest
+        "make_latest": "true" if make_latest else "false"
     }
     response = requests.post(create_release_url, headers=headers, json=data)
     if response.status_code == 201:
