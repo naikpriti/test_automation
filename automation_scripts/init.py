@@ -175,14 +175,16 @@ def update_main_branch(ip_addresses, new_tag_name):
     os.chdir("..")
     return ip_updated
 
-def create_release(branch_name, new_tag_name):
+def create_release(branch_name, new_tag_name, make_latest=False):
     data = {
-        "tag_name": new_tag_name,
-        "target_commitish": branch_name,
-        "name": new_tag_name,
-        "body": f"Release {new_tag_name}",
-        "draft": False,
-        "prerelease": False
+         "tag_name": new_tag_name,
++        "target_commitish": branch_name,
++        "name": new_tag_name,
++        "body": f"Release {new_tag_name}",
++        "draft": False,
++        "prerelease": False,
++        # Force which release is latest
++        "make_latest": "true" if make_latest else "false"
     }
     response = requests.post(create_release_url, headers=headers, json=data)
     if response.status_code == 201:
@@ -270,7 +272,7 @@ def main():
         exit(0)
     # Iterate over all version groups.
     # GitHub will mark the highest semver release as the latest.
-    for (major_minor, (patch, tag_name)) in sorted_latest_versions:
+    for idx, ((major, minor), (patch, tag_name)) in enumerate(sorted_latest_versions):
         major, minor = major_minor
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
@@ -278,7 +280,7 @@ def main():
         print(f"Processing version group: {major_minor}, patch {patch} -> creating release {new_release_tag}")
         create_branch(new_branch_name, tag_name)
         update_files(new_branch_name, new_tag_name, ip_addresses)
-        create_release(new_branch_name, new_release_tag)
+        create_release(new_branch_name, new_release_tag, make_latest=(idx == 0))
         delete_branch(new_branch_name)
 
 if __name__ == "__main__":
