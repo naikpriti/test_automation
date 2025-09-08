@@ -273,7 +273,6 @@ def main():
     # Iterate over all version groups.
     # GitHub will mark the highest semver release as the latest.
     for idx, ((major, minor), (patch, tag_name)) in enumerate(sorted_latest_versions):
-        major, minor = major_minor
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
         new_release_tag = f"v{major}.{minor}.{new_patch}"
