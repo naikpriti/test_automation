@@ -276,7 +276,7 @@ def main():
         new_patch = patch + 1
         new_branch_name = f"release-v{major}.{minor}.{new_patch}"
         new_release_tag = f"v{major}.{minor}.{new_patch}"
-        print(f"Processing version group: {major_minor}, patch {patch} -> creating release {new_release_tag}")
+        print(f"Processing version group: {major}.{minor}, patch {patch} -> creating release {new_release_tag}")
         create_branch(new_branch_name, tag_name)
         update_files(new_branch_name, new_tag_name, ip_addresses)
         create_release(new_branch_name, new_release_tag, make_latest=(idx == 0))
