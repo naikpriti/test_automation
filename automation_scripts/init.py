@@ -260,7 +260,7 @@ def main():
     versions = extract_versions(releases)
     latest_versions = get_latest_minor_versions(versions)
     # Sort in descending order so that the highest version is first.
-    sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)
+    sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
     print("Sorted Versions:", sorted_latest_versions)
     new_tag_name, ip_addresses = fetch_and_process_json()
     # Always update the main branch with the new version.
