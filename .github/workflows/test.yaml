@@ -48,9 +48,6 @@ jobs:
     - name: Check if release created
       id: check_release
       run: |
-        echo "----- Checking output.log for release info -----"
-        cat output.log
-        echo "----------------------------------------------"
         if grep -q "Release '" output.log; then
           echo "release_created=true" >> $GITHUB_OUTPUT
           echo "Release creation detected."
