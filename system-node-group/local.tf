@@ -2,7 +2,7 @@
 locals {
   # Count the number of availability zones
   az_count       = length(var.availability_zones)
-  module_version = "v1.20.0"
+  module_version = "v1.2.14"
   # Set node group overrides based on experimental features and defaults
   node_group_overrides = merge({
     }, var.experimental.arm64 ? {} : {

@@ -1,6 +1,6 @@
 locals {
   module_name    = "terraform-kubernetes-ingress-nginx"
-  module_version = "1.20.0"
+  module_version = "1.2.14"
   chart_version  = "4.13.3"
 
   chart_timeout         = 1800
