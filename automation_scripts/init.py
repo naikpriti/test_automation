@@ -99,8 +99,19 @@ def update_variables_tf(file_path, ip_addresses):
 
     if current_ip_str == new_ip_str:
         print("No new IP addresses found. Skipping update of variables.tf.")
-        return False
+        return False, []
 
+    # Parse current IPs to find newly added ones
+    current_ips = set()
+    if current_ip_str:
+        # Remove brackets and split by comma, then clean each IP
+        current_ip_list = current_ip_str.strip('[]').split(',')
+        current_ips = {ip.strip().strip('"') for ip in current_ip_list if ip.strip()}
+    
+    # Get new IPs (without quotes for comparison)
+    new_ips = {ip.strip('"') for ip in ip_addresses}
+    newly_added_ips = list(new_ips - current_ips)
+    
     new_lines = []
     inside_default_block = False
     for line in lines:
@@ -119,9 +130,51 @@ def update_variables_tf(file_path, ip_addresses):
         file.writelines(new_lines)
         
     print("Updated variables.tf with new IP addresses.")
-    return True
+    return True, newly_added_ips
 
-def update_files(branch_name, new_tag_name, ip_addresses):
+def update_module_versions(new_release_tag):
+    """Update module_version in all local.tf files to the new release tag"""
+    # Define the modules and their local.tf file paths
+    modules = [
+        "controlplane/local.tf",
+        "user-node-group/local.tf", 
+        "system-node-group/local.tf",
+        "ingress/local.tf"
+    ]
+    
+    for module_path in modules:
+        if os.path.exists(module_path):
+            with open(module_path, 'r') as file:
+                content = file.read()
+            
+            # For ingress module, version doesn't have 'v' prefix
+            if "ingress/local.tf" in module_path:
+                # Remove 'v' prefix for ingress module
+                version_to_use = new_release_tag.lstrip('v')
+                # Update module_version line in ingress
+                updated_content = re.sub(
+                    r'(module_version\s*=\s*")[^"]*(")',
+                    r'\g<1>' + version_to_use + r'\g<2>',
+                    content
+                )
+            else:
+                # Keep 'v' prefix for other modules
+                updated_content = re.sub(
+                    r'(module_version\s*=\s*")[^"]*(")',
+                    r'\g<1>' + new_release_tag + r'\g<2>',
+                    content
+                )
+            
+            if updated_content != content:
+                with open(module_path, 'w') as file:
+                    file.write(updated_content)
+                print(f"Updated module_version in {module_path} to {new_release_tag}")
+            else:
+                print(f"No changes needed for {module_path}")
+        else:
+            print(f"Warning: {module_path} not found")
+
+def update_files(branch_name, new_tag_name, ip_addresses, new_release_tag):
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
     subprocess.run(["git", "clone", f"https://{token}@github.com/{owner}/{repo}.git"])
@@ -130,16 +183,34 @@ def update_files(branch_name, new_tag_name, ip_addresses):
     subprocess.run(["git", "checkout", branch_name])
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
+    
+    # Update IP addresses in variables.tf
     variable_tf_path = os.path.join("key-vault", "variables.tf")
-    ip_updated = update_variables_tf(variable_tf_path, ip_addresses)
+    ip_updated, newly_added_ips = update_variables_tf(variable_tf_path, ip_addresses)
     subprocess.run(["terraform", "fmt", variable_tf_path])
+    
+    # Update module versions in all local.tf files
+    update_module_versions(new_release_tag)
+    
+    # Format all local.tf files
+    local_tf_files = ["controlplane/local.tf", "user-node-group/local.tf", "system-node-group/local.tf", "ingress/local.tf"]
+    for tf_file in local_tf_files:
+        if os.path.exists(tf_file):
+            subprocess.run(["terraform", "fmt", tf_file])
+    
+    # Update version.txt
     os.makedirs("automation_scripts", exist_ok=True)
     version_txt_path = os.path.join("automation_scripts", "version.txt")
     # Always update version.txt with the new version
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
+    
+    # Add all modified files to git
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
-    subprocess.run(["git", "commit", "-m", f"Update variables.tf and version.txt for release {new_tag_name}"])
+    # Add all local.tf files that might have been modified
+    subprocess.run(["git", "add", "controlplane/local.tf", "user-node-group/local.tf", "system-node-group/local.tf", "ingress/local.tf"])
+    
+    subprocess.run(["git", "commit", "-m", f"Update variables.tf, version.txt, and module versions for release {new_release_tag}"])
     try:
         subprocess.run(["git", "pull", "--rebase", "origin", branch_name], check=True)
     except subprocess.CalledProcessError:
@@ -150,9 +221,9 @@ def update_files(branch_name, new_tag_name, ip_addresses):
         print(f"Non-fast-forward push detected, force pushing branch '{branch_name}'")
         subprocess.run(["git", "push", "-u", "--force", "origin", branch_name])
     os.chdir("..")
-    return ip_updated
+    return ip_updated, newly_added_ips
 
-def update_main_branch(ip_addresses, new_tag_name):
+def update_main_branch(ip_addresses, new_tag_name, latest_release_tag=None):
     if os.path.exists(repo):
         subprocess.run(["rm", "-rf", repo])
     subprocess.run(["git", "clone", f"https://{token}@github.com/{owner}/{repo}.git"])
@@ -160,27 +231,63 @@ def update_main_branch(ip_addresses, new_tag_name):
     subprocess.run(["git", "checkout", "main"])
     subprocess.run(["git", "config", "user.email", "priti.naik@elexisnexisrisk.com"])
     subprocess.run(["git", "config", "user.name", "naikpriti"])
-    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    
     # Update variables.tf and record if IP list changed
-    ip_updated = update_variables_tf(variable_tf_path, ip_addresses)
+    variable_tf_path = os.path.join("key-vault", "variables.tf")
+    ip_updated, newly_added_ips = update_variables_tf(variable_tf_path, ip_addresses)
     subprocess.run(["terraform", "fmt", variable_tf_path])
+    
+    # Update module versions in main branch if latest_release_tag is provided
+    if latest_release_tag:
+        update_module_versions(latest_release_tag)
+        # Format all local.tf files
+        local_tf_files = ["controlplane/local.tf", "user-node-group/local.tf", "system-node-group/local.tf", "ingress/local.tf"]
+        for tf_file in local_tf_files:
+            if os.path.exists(tf_file):
+                subprocess.run(["terraform", "fmt", tf_file])
+    
+    # Update version.txt
     os.makedirs("automation_scripts", exist_ok=True)
     version_txt_path = os.path.join("automation_scripts", "version.txt")
     # Always update version.txt as version changes over time
     with open(version_txt_path, "w") as f:
         f.write(f"Version: {new_tag_name}")
+    
     subprocess.run(["git", "add", variable_tf_path, version_txt_path])
-    subprocess.run(["git", "commit", "-m", f"Update version.txt for release {new_tag_name}"])
+    # Add all local.tf files that might have been modified
+    if latest_release_tag:
+        subprocess.run(["git", "add", "controlplane/local.tf", "user-node-group/local.tf", "system-node-group/local.tf", "ingress/local.tf"])
+        subprocess.run(["git", "commit", "-m", f"Update version.txt and module versions for release {new_tag_name}"])
+    else:
+        subprocess.run(["git", "commit", "-m", f"Update version.txt for release {new_tag_name}"])
+    
     subprocess.run(["git", "push", "origin", "main"])
     os.chdir("..")
-    return ip_updated
+    return ip_updated, newly_added_ips
 
-def create_release(branch_name, new_tag_name, make_latest=False):
+def create_release(branch_name, new_tag_name, newly_added_ips, make_latest=False):
+    # Create release body with newly added IP addresses
+    if newly_added_ips:
+        ip_list = "\n".join([f"- {ip}" for ip in newly_added_ips])
+        ip_section = f"""## New IP Addresses Detected
+{ip_list}"""
+    else:
+        ip_section = "## New IP Addresses Detected\nNo new IP addresses detected in this release."
+    
+    release_body = f"""Release {new_tag_name}
+
+## Changes
+- Updated Azure IP addresses for eastus region
+- Updated module versions to {new_tag_name}
+
+{ip_section}
+"""
+    
     data = {
          "tag_name": new_tag_name,
         "target_commitish": branch_name,
         "name": new_tag_name,
-        "body": f"Release {new_tag_name}",
+        "body": release_body,
         "draft": False,
         "prerelease": False,
         # Force which release is latest
@@ -265,8 +372,16 @@ def main():
     sorted_latest_versions = sorted(latest_versions.items(), key=lambda x: (x[0][0], x[0][1]), reverse=True)[:3]
     print("Sorted Versions:", sorted_latest_versions)
     new_tag_name, ip_addresses = fetch_and_process_json()
+    
+    # Determine the latest release tag that will be created
+    latest_release_tag = None
+    if sorted_latest_versions:
+        major, minor = sorted_latest_versions[0][0]
+        patch = sorted_latest_versions[0][1][0]
+        latest_release_tag = f"v{major}.{minor}.{patch + 1}"
+    
     # Always update the main branch with the new version.
-    ip_updated = update_main_branch(ip_addresses, new_tag_name)
+    ip_updated, main_branch_new_ips = update_main_branch(ip_addresses, new_tag_name, latest_release_tag)
     if not ip_updated:
         print("No new IP addresses found in main branch. Skipping release branch creation.")
         exit(0)
@@ -278,8 +393,9 @@ def main():
         new_release_tag = f"v{major}.{minor}.{new_patch}"
         print(f"Processing version group: {major}.{minor}, patch {patch} -> creating release {new_release_tag}")
         create_branch(new_branch_name, tag_name)
-        update_files(new_branch_name, new_tag_name, ip_addresses)
-        create_release(new_branch_name, new_release_tag, make_latest=(idx == 0))
+        branch_ip_updated, branch_new_ips = update_files(new_branch_name, new_tag_name, ip_addresses, new_release_tag)
+        # Use the newly added IPs from the branch (should be the same as main branch)
+        create_release(new_branch_name, new_release_tag, branch_new_ips, make_latest=(idx == 0))
         delete_branch(new_branch_name)
 
 if __name__ == "__main__":
