@@ -16,7 +16,7 @@ locals {
     free     = "Free"
     standard = "Standard"
   }
-  module_version = "v1.3.17"
+  module_version = "v1.3.18"
   maintenance_utc_offset_lookup = {
     westeurope = "+00:00"
     uksouth    = "+00:00"
