@@ -9,7 +9,7 @@ locals {
   #   }, var.experimental.azure_cni_max_pods ? {} : {
   #   max_pods = local.user_node_groups.max_pods
   # })
-  module_version = "v1.3.19"
+  module_version = "v1.3.20"
   # Merge the node groups with the overrides
   node_groups = merge({ for k, v in var.node_groups : k => merge(var.node_groups, v, { system = false }) })
 
